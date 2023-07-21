@@ -1,6 +1,23 @@
 import numpy as np
 import amrex.space3d as amr
 
+try:
+    import cupy as cp
+    cupy_available = True
+except ImportError:
+    cupy_available = False
+
+if amr.Config.have_gpu:
+    if cupy_available:
+        xp = cp
+    else:
+        print("Warning: GPU found but cupy not available! Try managed...")
+        xp = np
+    if Config.gpu_backend == "SYCL":
+        print("Warning: SYCL GPU backend not yet implemented for Python")
+else:
+    xp = np
+
 def main_main ():
     """
     TODO Add documentation
@@ -62,15 +79,15 @@ def main_main ():
     for mfi in phi_old:
         bx = mfi.validbox()
         # phiOld is indexed in reversed order (z,y,x) and indices are local
-        phiOld = np.array(phi_old.array(mfi), copy=False)
+        phiOld = xp.array(phi_old.array(mfi), copy=False)
         # set phi = 1 + e^(-(r-0.5)^2)
-        x = (np.arange(bx.small_end[0],bx.big_end[0]+1,1) + 0.5) * dx[0]
-        y = (np.arange(bx.small_end[1],bx.big_end[1]+1,1) + 0.5) * dx[1]
-        z = (np.arange(bx.small_end[2],bx.big_end[2]+1,1) + 0.5) * dx[2]
-        rsquared = ((z[:         , np.newaxis, np.newaxis] - 0.5)**2
-                  + (y[np.newaxis, :         , np.newaxis] - 0.5)**2
-                  + (x[np.newaxis, np.newaxis, :         ] - 0.5)**2) / 0.01
-        phiOld[:, ngz:-ngz, ngy:-ngy, ngx:-ngx] = 1. + np.exp(-rsquared)
+        x = (xp.arange(bx.small_end[0],bx.big_end[0]+1,1) + 0.5) * dx[0]
+        y = (xp.arange(bx.small_end[1],bx.big_end[1]+1,1) + 0.5) * dx[1]
+        z = (xp.arange(bx.small_end[2],bx.big_end[2]+1,1) + 0.5) * dx[2]
+        rsquared = ((z[:         , xp.newaxis, xp.newaxis] - 0.5)**2
+                  + (y[xp.newaxis, :         , xp.newaxis] - 0.5)**2
+                  + (x[xp.newaxis, xp.newaxis, :         ] - 0.5)**2) / 0.01
+        phiOld[:, ngz:-ngz, ngy:-ngy, ngx:-ngx] = 1. + xp.exp(-rsquared)
 
     # Write a plotfile of the initial data if plot_int > 0
     if plot_int > 0:
@@ -86,8 +103,8 @@ def main_main ():
         # new_phi = old_phi + dt * Laplacian(old_phi)
         # Loop over boxes
         for mfi in phi_old:
-            phiOld = np.array(phi_old.array(mfi), copy=False)
-            phiNew = np.array(phi_new.array(mfi), copy=False)
+            phiOld = xp.array(phi_old.array(mfi), copy=False)
+            phiNew = xp.array(phi_new.array(mfi), copy=False)
             hix = phiOld.shape[3]
             hiy = phiOld.shape[2]
             hiz = phiOld.shape[1]
