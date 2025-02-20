@@ -24,6 +24,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MLMG.H>
+#include <AMReX_GMRES_MLMG.H>
 
 #include "Poisson.H"
 
@@ -37,6 +38,7 @@ int main (int argc, char* argv[])
         int verbose = 1;
         int n_cell = 128;
         int max_grid_size = 32;
+        int use_GMRES = 0;
         amrex::Vector<int> n_cell_2d;
         // read parameters
         {
@@ -45,6 +47,7 @@ int main (int argc, char* argv[])
         //    pp.query("n_cell", n_cell);
             pp.queryarr("n_cell", n_cell_2d);
             pp.query("max_grid_size", max_grid_size);
+            pp.query("use_GMRES",use_GMRES);
         }
 
         Geometry geom;
@@ -158,7 +161,16 @@ int main (int argc, char* argv[])
 
         // Solve linear system
         phi.setVal(0.0); // initial guess for phi
-        mlmg.solve({&phi}, {&q}, tol_rel, tol_abs);
+
+        if (use_GMRES) {
+            amrex::GMRESMLMG gmsolve(mlmg);
+            gmsolve.solve(phi, q, tol_rel, tol_abs);
+            amrex::Vector<amrex::MultiFab> vmf;
+            vmf.emplace_back(phi, amrex::make_alias, 0, phi.nComp());
+            linop.postSolve(vmf);
+        } else {
+            mlmg.solve({&phi}, {&q}, tol_rel, tol_abs);
+        }
 
         //// store plotfile variables; q and phi
         MultiFab plotfile_mf(grids, dmap, 2, 0, MFInfo(), factory);

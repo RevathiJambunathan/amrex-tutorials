@@ -4,6 +4,8 @@ verbose = 2
 n_cell = 256 128
 max_grid_size = 256
 
+use_GMRES = 1
+
 eb2.geom_type = merge
 #eb2.geom_type = sphere
 #eb2.sphere_center = 0.5  0.5  0.5
