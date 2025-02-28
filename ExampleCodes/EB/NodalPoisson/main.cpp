@@ -158,12 +158,12 @@ int main (int argc, char* argv[])
         const Real tol_abs = 0.0;
 
         mlmg.setVerbose(verbose);
-
         // Solve linear system
         phi.setVal(0.0); // initial guess for phi
 
         if (use_GMRES) {
             amrex::GMRESMLMG gmsolve(mlmg);
+            gmsolve.setVerbose(verbose);
             gmsolve.solve(phi, q, tol_rel, tol_abs);
             amrex::Vector<amrex::MultiFab> vmf;
             vmf.emplace_back(phi, amrex::make_alias, 0, phi.nComp());
